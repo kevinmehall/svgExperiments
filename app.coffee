@@ -1,33 +1,46 @@
 
-paper = false
+svg = false
 
 RADIUS = 5
 
 allNodes = []
 
+svgDrag = (elem, move, start, stop) ->
+	ex = 0
+	ey = 0
+	
+	mousedown = (event) ->
+		start(event)
+		ex = event.pageX
+		ey = event.pageY
+		$(document.body).mousemove(mousemove)
+		                .mouseup(mouseup)
+	
+	mousemove = (event) ->
+		move(event.pageX - ex, event.pageY - ey, event)
+	
+	mouseup = (event) ->
+		$(document.body).unbind('mousemove', mousemove)
+		                .unbind('mouseup', mouseup)
+		stop(event)
+		
+	$(elem).mousedown(mousedown)
+		
+		
+
 class Node
 	constructor: (@x, @y) ->
 		allNodes.push this
-		@dot = paper.circle(@x, @y, RADIUS)
+		@dot = svg.circle(@x, @y, RADIUS)
 		
-		@dot.attr
-			stroke: "#00f"
-			fill: "#00f"
-			'fill-opacity': 0.2
-			'stroke-width': 2
-			
-		@dot.mouseover ->
-			@animate 'fill-opacity':1, 200
-			
-		@dot.mouseout ->
-			@animate 'fill-opacity':0.2, 200
+		$(@dot).addClass 'node'
 		
 		@ox = @x
 		@oy = @y
 		
 		start = =>
 			@ox = @x
-			@oy = @y		
+			@oy = @y
 			
 		move = (dx, dy) =>
 			@x = @ox + dx
@@ -47,11 +60,10 @@ class Node
 					console.log "linked"
 					break
 					
-			
-			@dot.attr {cx: @x, cy:@y, fill:if @linked then '#0f0' else '#00f'}
+			$(@dot).attr {cx: @x, cy:@y, fill:if @linked then '#0f0' else '#00f'}
 			@onMove(dx, dy, @x, @y)
 		
-		@dot.drag(move, start, @onDrop)
+		svgDrag(@dot, move, start, @onDrop)
 		
 	onMove: ->
 	onDrop: ->
@@ -59,12 +71,12 @@ class Node
 
 class Wire
 	constructor: ->
-		@line = paper.path()
+		@line = svg.line()
 		@n1 = new Node(50, 50)
 		@n2 = new Node(100, 100)
 		
 		
-		@line.attr
+		$(@line).attr
 			'stroke-width': 2
 			stroke: "#00f"
 		@update()
@@ -73,14 +85,16 @@ class Wire
 		@n2.onMove = @update
 	
 	update: =>
-		@line.attr "path", "M#{@n1.x} #{@n1.y}L#{@n2.x} #{@n2.y}"
+		$(@line).attr {x1:@n1.x, y1:@n1.y, x2:@n2.x, y2:@n2.y}
 		
 	
 		
 		
 
-window.onload = ->
-	paper = Raphael(0, 0, 800, 800)
-	w = new Wire()
-	w2 = new Wire()
-	w3 = new Wire()
+$(window).ready ->
+	$("<div id='svgcanvas'>").appendTo(document.body).svg onLoad: (_svg) ->
+		svg = _svg
+		console.log(svg)
+		w = new Wire()
+		w2 = new Wire()
+		w3 = new Wire()
