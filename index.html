@@ -16,9 +16,14 @@ circle.node{
 
 circle.node:hover{
 	fill-opacity: 1;
+	cursor:move;
 }
 
-circle.node.linked{
-	fill: #0f0;
+circle.node.linked, circle.node.link-drag{
+	fill-opacity: 1;
+}
+
+circle.node.link-drag{
+	fill: red;
 }
 </style>

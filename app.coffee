@@ -46,9 +46,9 @@ class Node
 			@y = @oy + dy
 			
 			if @findLink()
-				$(@dot).addClass 'linked'
+				$(@dot).addClass 'link-drag'
 			else
-				$(@dot).removeClass 'linked'
+				$(@dot).removeClass 'link-drag'
 			
 			$(@dot).attr {cx: @x, cy:@y}
 			@onMove(dx, dy, @x, @y)
@@ -56,7 +56,10 @@ class Node
 		drop = (event) =>
 			l = @findLink()
 			if l
-				for i in @boundTo
+				boundTo = @boundTo
+				@boundTo = []
+				for i in boundTo
+					console.log 'binding', @boundTo, i, l
 					i.bind(l)
 				@destroy()
 		
@@ -86,8 +89,15 @@ class Node
 		if b not in @boundTo then @boundTo.push(b)
 		console.log 'addBinding', b, @boundTo
 		
+		if @boundTo.length > 1
+			$(@dot).addClass 'linked'
+		
 	removeBinding: (b) ->
 		if b in @boundTo then @boundTo.splice(@boundTo.indexOf(b), 1)
+		
+		if @boundTo.length <= 1
+			$(@dot).removeClass 'linked'
+		
 	
 	
 		
@@ -108,11 +118,10 @@ class NodeBinding
 		
 
 class Wire
-	constructor: ->
+	constructor: (x1,y1,x2,y2)->
 		@line = svg.line()
-		@n1 = new NodeBinding(new Node(50, 50))
-		@n2 = new NodeBinding(new Node(100, 100))
-		
+		@n1 = new NodeBinding(new Node(x1, y1))
+		@n2 = new NodeBinding(new Node(x2, y2))
 		
 		$(@line).attr
 			'stroke-width': 2
@@ -124,15 +133,13 @@ class Wire
 	
 	update: =>
 		$(@line).attr {x1:@n1.node.x, y1:@n1.node.y, x2:@n2.node.x, y2:@n2.node.y}
-		
-	
-		
-		
+
 
 $(window).ready ->
 	$("<div id='svgcanvas'>").appendTo(document.body).svg onLoad: (_svg) ->
 		svg = _svg
 		console.log(svg)
-		w = new Wire()
-		w2 = new Wire()
-		w3 = new Wire()
+		w1 = new Wire(50, 50, 100, 100)
+		w2 = new Wire(50, 80, 90, 80)
+		w3 = new Wire(80, 50, 120, 120)
+		w3 = new Wire(140, 140, 100, 50)
