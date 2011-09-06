@@ -3,7 +3,7 @@ svg = false
 
 RADIUS = 5
 
-allNodes = []
+window.allNodes = []
 
 svgDrag = (elem, move, start, stop) ->
 	ex = 0
@@ -27,11 +27,13 @@ svgDrag = (elem, move, start, stop) ->
 	$(elem).mousedown(mousedown)
 		
 		
-
+idCntr = 0
 class Node
 	constructor: (@x, @y) ->
 		allNodes.push this
+		@id = idCntr++
 		@dot = svg.circle(@x, @y, RADIUS)
+		@linkedTo = [this]
 		
 		$(@dot).addClass 'node'
 		
@@ -42,28 +44,57 @@ class Node
 			@ox = @x
 			@oy = @y
 			
-		move = (dx, dy) =>
+		move = (dx, dy, event) =>
 			@x = @ox + dx
 			@y = @oy + dy
 			
-			@linked = false
-			for i in allNodes
-				if i == this
-					continue
-				nearX = i.x - @x
-				nearY = i.y - @y
-				d2 = nearX*nearX + nearY*nearY
-				if d2 < RADIUS*RADIUS*2
-					@x = i.x
-					@y = i.y
-					@linked = true
-					console.log "linked"
-					break
-					
-			$(@dot).attr {cx: @x, cy:@y, fill:if @linked then '#0f0' else '#00f'}
+			if not event.shiftKey
+				@testLinked(!event.shiftKey)
+			
+			$(@dot).attr {cx: @x, cy:@y}
 			@onMove(dx, dy, @x, @y)
+			
+			if event.shiftKey
+				for i in @linkedTo
+					i.x = @x
+					i.y = @y
+					$(i.dot).attr {cx: @x, cy:@y}
+					i.onMove(dx, dy, @x, @y)
 		
 		svgDrag(@dot, move, start, @onDrop)
+			
+	testLinked: (canDisconnect) ->
+		oldLinkedTo = @linkedTo
+		@linkedTo = []
+		
+		for i in allNodes
+			nearX = i.x - @x
+			nearY = i.y - @y
+			d2 = nearX*nearX + nearY*nearY
+			if i != this and d2 < RADIUS*RADIUS*2
+				@linkedTo.push(i)
+				@x = i.x
+				@y = i.y
+				
+		added = _.difference(@linkedTo, oldLinkedTo)
+		removed = _.difference(oldLinkedTo, @linkedTo)
+		
+		for i in added
+			i.testLinked()
+			
+		for i in removed
+			i.testLinked()
+				
+		if added or removed
+			@updateLinks()
+					
+	updateLinks: ->
+		if @linkedTo.length
+			$(@dot).addClass('linked')
+		else
+			$(@dot).removeClass('linked')
+		
+
 		
 	onMove: ->
 	onDrop: ->
