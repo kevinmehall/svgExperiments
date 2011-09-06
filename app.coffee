@@ -48,8 +48,7 @@ class Node
 			@x = @ox + dx
 			@y = @oy + dy
 			
-			if not event.shiftKey
-				@testLinked(!event.shiftKey)
+			@testLinked(!event.shiftKey)
 			
 			$(@dot).attr {cx: @x, cy:@y}
 			@onMove(dx, dy, @x, @y)
@@ -64,29 +63,34 @@ class Node
 		svgDrag(@dot, move, start, @onDrop)
 			
 	testLinked: (canDisconnect) ->
-		oldLinkedTo = @linkedTo
-		@linkedTo = []
+		links = []
 		
 		for i in allNodes
 			nearX = i.x - @x
 			nearY = i.y - @y
 			d2 = nearX*nearX + nearY*nearY
 			if i != this and d2 < RADIUS*RADIUS*2
-				@linkedTo.push(i)
+				links.push(i)
 				@x = i.x
 				@y = i.y
 				
-		added = _.difference(@linkedTo, oldLinkedTo)
-		removed = _.difference(oldLinkedTo, @linkedTo)
+		added = _.difference(links, @linkedTo)
+		removed = _.difference(@linkedTo, links)
 		
-		for i in added
-			i.testLinked()
-			
-		for i in removed
-			i.testLinked()
+		
+		if canDisconnect
+			@linkedTo = links
 				
+			for i in removed
+				i.testLinked(canDisconnect)
+		else
+			@linkedTo = @linkedTo.concat(added)
+			
+		for i in added
+				i.testLinked(canDisconnect)
+						
 		if added or removed
-			@updateLinks()
+				@updateLinks()
 					
 	updateLinks: ->
 		if @linkedTo.length
