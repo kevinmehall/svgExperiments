@@ -27,15 +27,12 @@ svgDrag = (elem, move, start, stop) ->
 	$(elem).mousedown(mousedown)
 		
 		
-idCntr = 0
 class Node
 	constructor: (@x, @y) ->
 		allNodes.push this
-		@id = idCntr++
 		@dot = svg.circle(@x, @y, RADIUS)
-		@linkedTo = [this]
-		
 		$(@dot).addClass 'node'
+		@boundTo = []
 		
 		@ox = @x
 		@oy = @y
@@ -48,67 +45,73 @@ class Node
 			@x = @ox + dx
 			@y = @oy + dy
 			
-			@testLinked(!event.shiftKey)
+			if @findLink()
+				$(@dot).addClass 'linked'
+			else
+				$(@dot).removeClass 'linked'
 			
 			$(@dot).attr {cx: @x, cy:@y}
 			@onMove(dx, dy, @x, @y)
 			
-			if event.shiftKey
-				for i in @linkedTo
-					i.x = @x
-					i.y = @y
-					$(i.dot).attr {cx: @x, cy:@y}
-					i.onMove(dx, dy, @x, @y)
+		drop = (event) =>
+			l = @findLink()
+			if l
+				for i in @boundTo
+					i.bind(l)
+				@destroy()
 		
-		svgDrag(@dot, move, start, @onDrop)
+		svgDrag(@dot, move, start, drop)
 			
-	testLinked: (canDisconnect) ->
-		links = []
-		
+	destroy: ->
+		$(@dot).remove()
+		allNodes.splice(allNodes.indexOf(this), 1)
+			
+	findLink:  ->
 		for i in allNodes
 			nearX = i.x - @x
 			nearY = i.y - @y
 			d2 = nearX*nearX + nearY*nearY
 			if i != this and d2 < RADIUS*RADIUS*2
-				links.push(i)
 				@x = i.x
 				@y = i.y
-				
-		added = _.difference(links, @linkedTo)
-		removed = _.difference(@linkedTo, links)
-		
-		
-		if canDisconnect
-			@linkedTo = links
-				
-			for i in removed
-				i.testLinked(canDisconnect)
-		else
-			@linkedTo = @linkedTo.concat(added)
-			
-		for i in added
-				i.testLinked(canDisconnect)
-						
-		if added or removed
-				@updateLinks()
-					
-	updateLinks: ->
-		if @linkedTo.length
-			$(@dot).addClass('linked')
-		else
-			$(@dot).removeClass('linked')
-		
-
+				return i
+		return false
 		
 	onMove: ->
+		i.onMove() for i in @boundTo
 	onDrop: ->
+		i.onDrop() for i in @boundTo
+	
+	addBinding: (b) ->
+		if b not in @boundTo then @boundTo.push(b)
+		console.log 'addBinding', b, @boundTo
+		
+	removeBinding: (b) ->
+		if b in @boundTo then @boundTo.splice(@boundTo.indexOf(b), 1)
+	
+	
+		
+
+class NodeBinding
+	constructor: (node) ->
+		if node then @bind(node)
+		
+	bind: (node) ->
+		if @node
+			@node.removeBinding(this)
+		node.addBinding(this)
+		@node = node
+	
+	onMove: ->
+	onBound: ->
+		
 		
 
 class Wire
 	constructor: ->
 		@line = svg.line()
-		@n1 = new Node(50, 50)
-		@n2 = new Node(100, 100)
+		@n1 = new NodeBinding(new Node(50, 50))
+		@n2 = new NodeBinding(new Node(100, 100))
 		
 		
 		$(@line).attr
@@ -120,7 +123,7 @@ class Wire
 		@n2.onMove = @update
 	
 	update: =>
-		$(@line).attr {x1:@n1.x, y1:@n1.y, x2:@n2.x, y2:@n2.y}
+		$(@line).attr {x1:@n1.node.x, y1:@n1.node.y, x2:@n2.node.x, y2:@n2.node.y}
 		
 	
 		
