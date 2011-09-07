@@ -25,7 +25,9 @@ svgDrag = (elem, move, start, stop) ->
 		stop(event)
 		
 	$(elem).mousedown(mousedown)
-		
+
+svgRaise = (e) ->
+	$(e).appendTo($(e).parent())
 		
 class Node
 	constructor: (@x, @y) ->
@@ -36,11 +38,19 @@ class Node
 		
 		@ox = @x
 		@oy = @y
+		
+		@moveEnabled = true
+		@snapEnabled = true
+		
 		svgDrag(@dot, @move, @startDrag, @drop)
 		
-	startDrag: =>
+	startDrag: (event) =>
 		@ox = @x
 		@oy = @y
+		
+		svgRaise(@dot)
+		
+		i.onStartDrag(event) for i in @boundTo
 		
 	move: (dx, dy, event) =>
 		@x = @ox + dx
@@ -52,10 +62,13 @@ class Node
 			$(@dot).removeClass 'link-drag'
 		
 		$(@dot).attr {cx: @x, cy:@y}
-		@onMove(dx, dy, @x, @y)
+		i.onMove(dx, dy, @x, @y) for i in @boundTo
 		
 	drop: (event) =>
 		l = @findLink()
+		
+		i.onDrop(event) for i in @boundTo
+		
 		if l
 			boundTo = @boundTo
 			@boundTo = []
@@ -78,11 +91,6 @@ class Node
 				@y = i.y
 				return i
 		return false
-		
-	onMove: ->
-		i.onMove() for i in @boundTo
-	onDrop: ->
-		i.onDrop() for i in @boundTo
 	
 	addBinding: (b) ->
 		if b not in @boundTo then @boundTo.push(b)
@@ -111,11 +119,11 @@ class NodeBinding
 		node.addBinding(this)
 		@node = node
 	
+	onStartDrag: ->
 	onMove: ->
+	onDrop: ->
 	onBound: ->
-		
-		
-
+	
 class Wire
 	constructor: (x1,y1,x2,y2)->
 		@line = svg.line()
@@ -129,6 +137,8 @@ class Wire
 		
 		@n1.onMove = @update
 		@n2.onMove = @update
+		
+		@n1.onStartDrag = @n2.onStartDrag = => svgRaise(@line)
 	
 	update: =>
 		$(@line).attr {x1:@n1.node.x, y1:@n1.node.y, x2:@n2.node.x, y2:@n2.node.y}
@@ -150,6 +160,11 @@ class TestPart
 		@nodes = (
 			(new NodeBinding(new Node(@x+x,@y+50)) for x in [0, 100])
 			.concat(new NodeBinding(new Node(@x+50,@y+y)) for y in [0, 100]))
+			
+		onStartDrag = =>
+			svgRaise(@rect)
+			svgRaise(i.node.dot) for i in @nodes
+		(i.onStartDrag = onStartDrag) for i in @nodes
 			
 		@ox = @x
 		@oy = @y
