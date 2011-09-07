@@ -36,34 +36,33 @@ class Node
 		
 		@ox = @x
 		@oy = @y
+		svgDrag(@dot, @move, @startDrag, @drop)
 		
-		start = =>
-			@ox = @x
-			@oy = @y
-			
-		move = (dx, dy, event) =>
-			@x = @ox + dx
-			@y = @oy + dy
-			
-			if @findLink()
-				$(@dot).addClass 'link-drag'
-			else
-				$(@dot).removeClass 'link-drag'
-			
-			$(@dot).attr {cx: @x, cy:@y}
-			@onMove(dx, dy, @x, @y)
-			
-		drop = (event) =>
-			l = @findLink()
-			if l
-				boundTo = @boundTo
-				@boundTo = []
-				for i in boundTo
-					console.log 'binding', @boundTo, i, l
-					i.bind(l)
-				@destroy()
+	startDrag: =>
+		@ox = @x
+		@oy = @y
 		
-		svgDrag(@dot, move, start, drop)
+	move: (dx, dy, event) =>
+		@x = @ox + dx
+		@y = @oy + dy
+		
+		if @findLink()
+			$(@dot).addClass 'link-drag'
+		else
+			$(@dot).removeClass 'link-drag'
+		
+		$(@dot).attr {cx: @x, cy:@y}
+		@onMove(dx, dy, @x, @y)
+		
+	drop: (event) =>
+		l = @findLink()
+		if l
+			boundTo = @boundTo
+			@boundTo = []
+			for i in boundTo
+				console.log 'binding', @boundTo, i, l
+				i.bind(l)
+			@destroy()
 			
 	destroy: ->
 		$(@dot).remove()
@@ -134,6 +133,50 @@ class Wire
 	update: =>
 		$(@line).attr {x1:@n1.node.x, y1:@n1.node.y, x2:@n2.node.x, y2:@n2.node.y}
 
+class TestPart
+	constructor: (@x, @y) ->
+		@rect = svg.rect()
+		
+		$(@rect).attr
+			'stroke-width': 2
+			stroke: "#0f0"
+			fill: "#cfc"
+			width: 100
+			height: 100
+			x: @x
+			y: @y
+			cursor: 'move'
+		
+		@nodes = (
+			(new NodeBinding(new Node(@x+x,@y+50)) for x in [0, 100])
+			.concat(new NodeBinding(new Node(@x+50,@y+y)) for y in [0, 100]))
+			
+		@ox = @x
+		@oy = @y
+		svgDrag(@rect, @move, @startDrag, @drop)
+		
+	startDrag: =>
+		@ox = @x
+		@oy = @y
+		
+		for node in @nodes
+			if node.node then node.node.startDrag()
+		
+	move: (dx, dy, event) =>
+		@x = @ox + dx
+		@y = @oy + dy
+		
+		for node in @nodes
+			if node.node then node.node.move(dx, dy, event)
+			
+		$(@rect).attr
+			x: @x
+			y: @y
+			
+	drop: (event) =>
+		for node in @nodes
+			if node.node then node.node.drop(event)
+
 
 $(window).ready ->
 	$("<div id='svgcanvas'>").appendTo(document.body).svg onLoad: (_svg) ->
@@ -143,3 +186,4 @@ $(window).ready ->
 		w2 = new Wire(50, 80, 90, 80)
 		w3 = new Wire(80, 50, 120, 120)
 		w3 = new Wire(140, 140, 100, 50)
+		p1 = new TestPart(200, 200)
