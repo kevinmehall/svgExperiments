@@ -1,10 +1,15 @@
+# SVG nodes/handles experiment
+# (C) 2011 Kevin Mehall (Nonolith Labs) <km@kevinmehall.net>
+# BSD License
 
-svg = false
-
-RADIUS = 5
-
+RADIUS = 5 # Node radius, px
+svg = false # canvas object global, assigned in window.ready => svg.onload
 window.allNodes = []
 
+# Helper to make a SVG object *elem* draggable
+# move() is called with relative position (from start of drag) when the mouse is moved
+# start() is called when the button is pressed to initiate the drag. return false to cancel
+# stop() is called when the mouse is released
 svgDrag = (elem, move, start, stop) ->
 	ex = 0
 	ey = 0
@@ -26,6 +31,7 @@ svgDrag = (elem, move, start, stop) ->
 		
 	$(elem).mousedown(mousedown)
 
+# Move an element to be the last child of its parent to raise it to the top of the z-stack
 svgRaise = (e) ->
 	$(e).appendTo($(e).parent())
 		
@@ -47,9 +53,8 @@ class Node
 		@ox = @x
 		@oy = @y
 		
-		svgRaise(@dot)
-		
 		i.onStartDrag(event) for i in @boundTo
+		svgRaise(@dot)
 		
 	move: (dx, dy, event) =>	
 		@x = @ox + dx
@@ -72,7 +77,6 @@ class Node
 			boundTo = @boundTo
 			@boundTo = []
 			for i in boundTo
-				console.log 'binding', @boundTo, i, l
 				i.bind(l)
 			@destroy()
 			
@@ -93,7 +97,6 @@ class Node
 	
 	addBinding: (b) ->
 		if b not in @boundTo then @boundTo.push(b)
-		console.log 'addBinding', b, @boundTo
 		
 		if @boundTo.length > 1
 			$(@dot).addClass 'linked'
@@ -103,11 +106,9 @@ class Node
 		
 		if @boundTo.length <= 1
 			$(@dot).removeClass 'linked'
-		
-	
-	
-		
 
+# Connection between a node and an object that has attached nodes
+# Wire/Part holds as a pointer to the Node object as the SVG shapes come and go
 class NodeBinding
 	constructor: (node, @enableMove=true) ->
 		if node then @bind(node)
@@ -122,7 +123,8 @@ class NodeBinding
 	onMove: ->
 	onDrop: ->
 	onBound: ->
-	
+
+# Line between two Nodes	
 class Wire
 	constructor: (x1,y1,x2,y2)->
 		@line = svg.line()
@@ -195,7 +197,6 @@ class TestPart
 $(window).ready ->
 	$("<div id='svgcanvas'>").appendTo(document.body).svg onLoad: (_svg) ->
 		svg = _svg
-		console.log(svg)
 		w1 = new Wire(50, 50, 100, 100)
 		w2 = new Wire(50, 80, 90, 80)
 		w3 = new Wire(80, 50, 120, 120)
