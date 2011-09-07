@@ -10,7 +10,7 @@ svgDrag = (elem, move, start, stop) ->
 	ey = 0
 	
 	mousedown = (event) ->
-		start(event)
+		if (s=start(event))==false then return
 		ex = event.pageX
 		ey = event.pageY
 		$(document.body).mousemove(mousemove)
@@ -39,10 +39,9 @@ class Node
 		@ox = @x
 		@oy = @y
 		
-		@moveEnabled = true
-		@snapEnabled = true
-		
-		svgDrag(@dot, @move, @startDrag, @drop)
+		startDrag = => 
+			if _.every(@boundTo, (i)->i.enableMove) then @startDrag() else false
+		svgDrag(@dot, @move, startDrag, @drop)
 		
 	startDrag: (event) =>
 		@ox = @x
@@ -52,7 +51,7 @@ class Node
 		
 		i.onStartDrag(event) for i in @boundTo
 		
-	move: (dx, dy, event) =>
+	move: (dx, dy, event) =>	
 		@x = @ox + dx
 		@y = @oy + dy
 		
@@ -110,7 +109,7 @@ class Node
 		
 
 class NodeBinding
-	constructor: (node) ->
+	constructor: (node, @enableMove=true) ->
 		if node then @bind(node)
 		
 	bind: (node) ->
@@ -158,8 +157,8 @@ class TestPart
 			cursor: 'move'
 		
 		@nodes = (
-			(new NodeBinding(new Node(@x+x,@y+50)) for x in [0, 100])
-			.concat(new NodeBinding(new Node(@x+50,@y+y)) for y in [0, 100]))
+			(new NodeBinding(new Node(@x+x,@y+50), false) for x in [0, 100])
+			.concat(new NodeBinding(new Node(@x+50,@y+y), false) for y in [0, 100]))
 			
 		onStartDrag = =>
 			svgRaise(@rect)
